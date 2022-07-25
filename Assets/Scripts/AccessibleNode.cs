@@ -24,13 +24,17 @@ namespace AccessKit
                     window = GetActiveWindow();
                     if (init(window))
                     {
-                        var initialState = "{\"nodes\":[{\"id\":1,\"role\":\"window\",\"name\":\"Hello from Unity\"},{\"id\":2,\"role\":\"button\",\"name\":\"Click me!\"}],\"focus\":2,\"tree\":{\"root\":1}}";
+                        var initialState = "{\"nodes\":[{\"id\":1,\"role\":\"window\",\"name\":\"Hello from Unity\",\"children\":[2]},{\"id\":2,\"role\":\"button\",\"name\":\"Click me!\"}],\"focus\":2,\"tree\":{\"root\":1}}";
                         push_update(window, toUTF8(initialState));
                         initialized = true;
                     }
                 }
                 catch (Exception e)
                 {
+                    using (var sw = new System.IO.StreamWriter("error.txt"))
+                    {
+                        sw.WriteLine(e.ToString());
+                    }
                     Debug.Log(e.ToString());
                 }
             }
@@ -74,20 +78,16 @@ namespace AccessKit
 
         static byte[] toUTF8(string s)
         {
-            var bytes = Encoding.UTF8.GetBytes(s);
-            var nulTerminated = new byte[bytes.Length + 1];
-            Array.Copy(bytes, 0, nulTerminated, 0, bytes.Length);
-            nulTerminated[bytes.Length] = 0;
-            return nulTerminated;
+            return Encoding.UTF8.GetBytes(s + char.MinValue);
         }
         
-        [DllImport("./accesskit_unity_plugin.dll")]
+        [DllImport("accesskit_unity_plugin")]
         static extern bool init(IntPtr hWnd);
 
-        [DllImport("./accesskit_unity_plugin.dll")]
+        [DllImport("accesskit_unity_plugin")]
         static extern void destroy(IntPtr hwnd);
 
-        [DllImport("./accesskit_unity_plugin.dll")]
+        [DllImport("accesskit_unity_plugin")]
         static extern void push_update(IntPtr hwnd, byte[] tree_update);
 
         [DllImport("user32")]
