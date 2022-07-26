@@ -13,6 +13,7 @@ use std::{
 };
 use windows::Win32::{
     Foundation::*,
+    System::Diagnostics::Debug::Beep,
     UI::WindowsAndMessaging::*
 };
 
@@ -79,25 +80,28 @@ extern fn init(hwnd: HWND) -> bool {
         SetPropW(hwnd, PROP_NAME, HANDLE(Box::into_raw(adapter) as _))
     }.unwrap();
     unsafe {
-        ShowWindow(hwnd, SW_HIDE); 
+        ShowWindow(hwnd, SW_HIDE);
         ShowWindow(hwnd, SW_SHOW);
     };
     true
 }
 
 #[no_mangle]
-extern fn push_update(hwnd: HWND, tree_update: *const c_char) {
+extern fn push_update(hwnd: HWND, tree_update: *const c_char, force: bool) {
     let tree_update = unsafe { CStr::from_ptr(tree_update).to_str() }.unwrap();
     let tree_update: TreeUpdate = serde_json::from_str(tree_update).unwrap();
     let handle = unsafe { GetPropW(hwnd, PROP_NAME) };
     let adapter = unsafe { Box::from_raw(handle.0 as *mut Adapter) };
-    adapter.update_if_active(|| tree_update);
+    if force {
+        adapter.update(tree_update);
+    } else {
+        adapter.update_if_active(|| tree_update);
+    }
     Box::into_raw(adapter);
 }
 
 #[no_mangle]
 extern fn destroy(hwnd: HWND) {
     let handle = unsafe { RemovePropW(hwnd, PROP_NAME) }.unwrap();
-    let adapter = unsafe { Box::from_raw(handle.0 as *mut Adapter) };
-    drop(adapter);
+    unsafe { Box::from_raw(handle.0 as *mut Adapter) };
 }
