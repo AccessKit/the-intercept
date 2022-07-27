@@ -97,6 +97,8 @@ namespace AccessKit
                 {
                     if (node.id != request.target)
                         continue;
+                    if (node.defaultActionVerb != DefaultActionVerb.click)
+                        return;
                     var button = node.GetComponent<Button>();
                     if (button != null)
                         button.onClick.Invoke();

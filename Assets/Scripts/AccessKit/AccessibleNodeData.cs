@@ -16,6 +16,8 @@ namespace AccessKit
         public bool focusable;
         [DefaultValue(true)]
         public bool visible = true;
+        [DefaultValue(DefaultActionVerb.none)]
+        public DefaultActionVerb defaultActionVerb;
 
         public AccessibleNodeData(ulong id, AccessibleRole role)
         {
@@ -30,6 +32,8 @@ namespace AccessKit
             this.children = children;
             focusable = node.focusable;
             name = getName(node);
+            visible = node.visible;
+            defaultActionVerb = node.defaultActionVerb;
         }
         
         string getName(AccessibleNode node)

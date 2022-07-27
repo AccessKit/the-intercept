@@ -19,6 +19,7 @@ namespace AccessKit
         public uint indexInParent;
         public bool focusable;
         public bool visible;
+        public DefaultActionVerb defaultActionVerb;
         
         void Start()
         {
