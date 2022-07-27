@@ -18,21 +18,26 @@ use windows::Win32::{
 mod platform_impl;
 
 struct UnityActionHandler {
-    callback: extern "system" fn(*const c_char)
+    callback: extern "system" fn(*const c_char),
+    sender: platform_impl::MainThreadCallbackSender,
 }
 
 impl ActionHandler for UnityActionHandler {
     fn do_action(&self, request: ActionRequest) {
         let request = serde_json::to_string(&request).unwrap();
         let request = CString::new(request).unwrap();
-        let ptr = request.as_ptr();
-        std::mem::forget(request);
-        (self.callback)(ptr);
+        let callback = self.callback;
+        self.sender.send(move || {
+            let ptr = request.as_ptr();
+            std::mem::forget(request);
+            callback(ptr);
+        });
     }
 }
 
 pub struct Adapter {
     adapter: platform_impl::Adapter,
+    _callback_receiver: platform_impl::MainThreadCallbackReceiver,
 }
 
 impl Adapter {
@@ -41,11 +46,13 @@ impl Adapter {
         source: Box<dyn FnOnce() -> TreeUpdate + Send>,
         action_handler: extern "system" fn(*const c_char),
     ) -> Self {
+        let (callback_sender, callback_receiver) = platform_impl::main_thread_callback_channel();
         let action_handler = UnityActionHandler {
-            callback: action_handler
+            callback: action_handler,
+            sender: callback_sender,
         };
         let adapter = platform_impl::Adapter::new(hwnd, source, Box::new(action_handler));
-        Self { adapter }
+        Self { adapter, _callback_receiver: callback_receiver }
     }
 
     pub fn update(&self, update: TreeUpdate) {

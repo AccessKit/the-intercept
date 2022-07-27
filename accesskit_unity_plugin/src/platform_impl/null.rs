@@ -20,3 +20,17 @@ impl Adapter {
 
     pub fn update_if_active(&self, _updater: impl FnOnce() -> TreeUpdate) {}
 }
+
+pub(crate) struct MainThreadCallbackSender;
+
+impl MainThreadCallbackSender {
+    pub(crate) fn send(&self, f: impl FnOnce()) {
+        f()
+    }
+}
+
+pub(crate) struct MainThreadCallbackReceiver;
+
+pub(crate) fn main_thread_callback_channel() -> (MainThreadCallbackSender, MainThreadCallbackReceiver) {
+    (MainThreadCallbackSender {}, MainThreadCallbackReceiver {})
+}
