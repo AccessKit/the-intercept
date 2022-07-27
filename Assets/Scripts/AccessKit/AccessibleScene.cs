@@ -45,14 +45,14 @@ namespace AccessKit
         {
             if (initialized && !destroyed && hasFocus != windowHasFocus)
             {
-                buildTreeUpdate(hasFocus, false);
                 windowHasFocus = hasFocus;
+                buildTreeUpdate(false);
             }
         }
 
         void LateUpdate()
         {
-            buildTreeUpdate(true, false);
+            buildTreeUpdate(false);
         }
 
         void OnApplicationQuit()
@@ -71,7 +71,7 @@ namespace AccessKit
             }
         }
 
-        void buildTreeUpdate(bool addFocus, bool forcePush)
+        void buildTreeUpdate(bool forcePush)
         {
             var treeUpdate = new TreeUpdate();
             AccessibleNode[] nodes = GameObject.FindObjectsOfType<AccessibleNode>();
@@ -81,12 +81,12 @@ namespace AccessKit
             {
                 if (node.id == 0 || node.parent == 0)
                     continue;
-                treeUpdate.nodes.Add(new AccessibleNodeData(node, findChildren(node.id, nodes)));
-                if (addFocus && treeUpdate.focus == null && node.focusable)
-                {
+                if (windowHasFocus && node.GetComponent<HasKeyboardFocus>() != null)
                     treeUpdate.focus = node.id;
-                }
+                treeUpdate.nodes.Add(new AccessibleNodeData(node, findChildren(node.id, nodes)));
             }
+            if (treeUpdate.focus == null && windowHasFocus)
+                treeUpdate.focus = rootNode.id;
             try
             {
                 var settings = new JsonSerializerSettings()
@@ -96,6 +96,18 @@ namespace AccessKit
                 };
                 settings.Converters.Add(new StringEnumConverter());
                 var json = JsonConvert.SerializeObject(treeUpdate, settings);
+                using (var sw = new System.IO.StreamWriter("dump.json"))
+                {
+                    var currentlyFocused = GetComponentInChildren<HasKeyboardFocus>();
+                    if (currentlyFocused != null)
+                    {
+                        sw.WriteLine("Someone has focus");
+                        var text = currentlyFocused.GetComponentInChildren<Text>();
+                        if (text != null)
+                            sw.WriteLine(text.text);
+                    }
+                    sw.WriteLine(json);
+                }
                 push_update(windowHandle, toUTF8(json), false);
             }
             catch (Exception e)
