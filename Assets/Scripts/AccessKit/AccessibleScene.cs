@@ -16,6 +16,9 @@ namespace AccessKit
         static bool initialized;
         static bool destroyed;
         static bool windowHasFocus = true;
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        delegate void ActionHandler(IntPtr action);
+        static ActionHandler performAction = null;
         AccessibleNodeData rootNode;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -26,12 +29,27 @@ namespace AccessKit
                 try
                 {
                     windowHandle = GetActiveWindow();
-                    initialized = init(windowHandle);
+                    performAction += new ActionHandler(performActionCallback);
+                    initialized = init(windowHandle, performAction);
                 }
                 catch (Exception e)
                 {
                     Debug.Log(e.ToString());
                 }
+            }
+        }
+
+        static void performActionCallback(IntPtr buffer)
+        {
+            try
+            {
+                var json = fromUTF8(buffer);
+                var request = JsonConvert.DeserializeObject<ActionRequest>(json);
+                dispatchAction(request);
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e.ToString());
             }
         }
 
@@ -71,6 +89,21 @@ namespace AccessKit
             }
         }
 
+        static void dispatchAction(ActionRequest request)
+        {
+            if (request.action == "default" && request.target != null)
+            {
+                foreach (var node in GameObject.FindObjectsOfType<AccessibleNode>())
+                {
+                    if (node.id != request.target)
+                        continue;
+                    var button = node.GetComponent<Button>();
+                    if (button != null)
+                        button.onClick.Invoke();
+                }
+            }
+        }
+
         void buildTreeUpdate(bool forcePush)
         {
             var treeUpdate = new TreeUpdate();
@@ -96,18 +129,6 @@ namespace AccessKit
                 };
                 settings.Converters.Add(new StringEnumConverter());
                 var json = JsonConvert.SerializeObject(treeUpdate, settings);
-                using (var sw = new System.IO.StreamWriter("dump.json"))
-                {
-                    var currentlyFocused = GetComponentInChildren<HasKeyboardFocus>();
-                    if (currentlyFocused != null)
-                    {
-                        sw.WriteLine("Someone has focus");
-                        var text = currentlyFocused.GetComponentInChildren<Text>();
-                        if (text != null)
-                            sw.WriteLine(text.text);
-                    }
-                    sw.WriteLine(json);
-                }
                 push_update(windowHandle, toUTF8(json), false);
             }
             catch (Exception e)
@@ -132,9 +153,19 @@ namespace AccessKit
         {
             return Encoding.UTF8.GetBytes(s + char.MinValue);
         }
-        
+
+        public static string fromUTF8(IntPtr nativeUtf8)
+        {
+            int len = 0;
+            while (Marshal.ReadByte(nativeUtf8, len) != 0)
+                ++len;
+            byte[] buffer = new byte[len];
+            Marshal.Copy(nativeUtf8, buffer, 0, buffer.Length);
+            return Encoding.UTF8.GetString(buffer);
+        }
+
         [DllImport("accesskit_unity_plugin")]
-        static extern bool init(IntPtr hWnd);
+        static extern bool init(IntPtr hWnd, ActionHandler actionHandler);
 
         [DllImport("accesskit_unity_plugin")]
         static extern void destroy(IntPtr hwnd);

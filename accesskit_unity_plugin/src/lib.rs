@@ -3,30 +3,32 @@
 // the LICENSE-APACHE file).
 
 use accesskit::{
-    ActionHandler, ActionRequest, DefaultActionVerb, Node, NodeId, Role, Tree, TreeUpdate
+    ActionHandler, ActionRequest, Node, NodeId, Role, Tree, TreeUpdate
 };
 use std::{
-    ffi::CStr,
+    ffi::{CStr, CString},
     num::NonZeroU128,
-    os::raw::c_char,
-    sync::{Arc, Mutex}
+    os::raw::c_char
 };
 use windows::Win32::{
     Foundation::*,
-    System::Diagnostics::Debug::Beep,
     UI::WindowsAndMessaging::*
 };
 
 mod platform_impl;
 
-pub struct ActionRequestEvent {
-    pub request: ActionRequest,
+struct UnityActionHandler {
+    callback: extern "system" fn(*const c_char)
 }
 
-struct UnityActionHandler;
-
 impl ActionHandler for UnityActionHandler {
-    fn do_action(&self, _request: ActionRequest) {}
+    fn do_action(&self, request: ActionRequest) {
+        let request = serde_json::to_string(&request).unwrap();
+        let request = CString::new(request).unwrap();
+        let ptr = request.as_ptr();
+        std::mem::forget(request);
+        (self.callback)(ptr);
+    }
 }
 
 pub struct Adapter {
@@ -37,8 +39,11 @@ impl Adapter {
     pub fn new(
         hwnd: HWND,
         source: Box<dyn FnOnce() -> TreeUpdate + Send>,
+        action_handler: extern "system" fn(*const c_char),
     ) -> Self {
-        let action_handler = UnityActionHandler {};
+        let action_handler = UnityActionHandler {
+            callback: action_handler
+        };
         let adapter = platform_impl::Adapter::new(hwnd, source, Box::new(action_handler));
         Self { adapter }
     }
@@ -71,10 +76,11 @@ fn initial_tree_update() -> TreeUpdate {
 const PROP_NAME: &str = "AccessKitUnityPlugin";
 
 #[no_mangle]
-extern fn init(hwnd: HWND) -> bool {
+extern fn init(hwnd: HWND, action_handler: extern "system" fn(*const c_char)) -> bool {
     let adapter = Box::new(Adapter::new(
         hwnd,
         Box::new(move || initial_tree_update()),
+        action_handler,
     ));
     unsafe {
         SetPropW(hwnd, PROP_NAME, HANDLE(Box::into_raw(adapter) as _))
