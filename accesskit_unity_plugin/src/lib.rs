@@ -2,12 +2,9 @@
 // Licensed under the Apache License, Version 2.0 (found in
 // the LICENSE-APACHE file).
 
-use accesskit::{
-    ActionHandler, ActionRequest, Node, NodeId, Role, Tree, TreeUpdate
-};
+use accesskit::{ActionHandler, ActionRequest, TreeUpdate};
 use std::{
     ffi::{CStr, CString},
-    num::NonZeroU128,
     os::raw::c_char
 };
 use windows::Win32::{
@@ -17,8 +14,10 @@ use windows::Win32::{
 
 mod platform_impl;
 
+type ActionHandlerCallback = extern "system" fn(*const c_char);
+
 struct UnityActionHandler {
-    callback: extern "system" fn(*const c_char),
+    callback: ActionHandlerCallback,
     sender: platform_impl::MainThreadCallbackSender,
 }
 
@@ -44,7 +43,7 @@ impl Adapter {
     pub fn new(
         hwnd: HWND,
         source: Box<dyn FnOnce() -> TreeUpdate + Send>,
-        action_handler: extern "system" fn(*const c_char),
+        action_handler: ActionHandlerCallback,
     ) -> Self {
         let (callback_sender, callback_receiver) = platform_impl::main_thread_callback_channel();
         let action_handler = UnityActionHandler {
@@ -64,53 +63,59 @@ impl Adapter {
     }
 }
 
-const WINDOW_TITLE: &str = "Hello world";
-
-const WINDOW_ID: NodeId = NodeId(unsafe { NonZeroU128::new_unchecked(1) });
-
-fn initial_tree_update() -> TreeUpdate {
-    let root = Node {
-        name: Some(WINDOW_TITLE.into()),
-        ..Node::new(WINDOW_ID, Role::Window)
-    };
-    TreeUpdate {
-        nodes: vec![root],
-        tree: Some(Tree::new(WINDOW_ID)),
-        focus: None,
-    }
+fn tree_update_from_json(json: *const c_char) -> Option<TreeUpdate> {
+    let json = unsafe { CStr::from_ptr(json).to_str() }.ok()?;
+    serde_json::from_str::<TreeUpdate>(json).ok()
 }
 
 const PROP_NAME: &str = "AccessKitUnityPlugin";
 
 #[no_mangle]
-extern fn init(hwnd: HWND, action_handler: extern "system" fn(*const c_char)) -> bool {
+extern fn init(
+    hwnd: HWND,
+    action_handler: ActionHandlerCallback,
+    initial_tree_update: *const c_char
+) -> bool {
+    let initial_tree_update = match tree_update_from_json(initial_tree_update) {
+        Some(tree_update) => tree_update,
+        _ => return false
+    };
     let adapter = Box::new(Adapter::new(
         hwnd,
-        Box::new(move || initial_tree_update()),
+        Box::new(move || initial_tree_update),
         action_handler,
     ));
-    unsafe {
-        SetPropW(hwnd, PROP_NAME, HANDLE(Box::into_raw(adapter) as _))
-    }.unwrap();
-    unsafe {
-        ShowWindow(hwnd, SW_HIDE);
-        ShowWindow(hwnd, SW_SHOW);
-    };
-    true
+    let ptr = Box::into_raw(adapter);
+    if unsafe { SetPropW(hwnd, PROP_NAME, HANDLE(ptr as _)).as_bool() } {
+        unsafe {
+            ShowWindow(hwnd, SW_HIDE);
+            ShowWindow(hwnd, SW_SHOW);
+        };
+        true
+    } else {
+        false
+    }
 }
 
 #[no_mangle]
-extern fn push_update(hwnd: HWND, tree_update: *const c_char, force: bool) {
-    let tree_update = unsafe { CStr::from_ptr(tree_update).to_str() }.unwrap();
-    let tree_update: TreeUpdate = serde_json::from_str(tree_update).unwrap();
+extern fn push_update(
+    hwnd: HWND,
+    tree_update: *const c_char,
+    force_push: bool
+) -> bool {
+    let tree_update = match tree_update_from_json(tree_update) {
+        Some(tree_update) => tree_update,
+        _ => return false
+    };
     let handle = unsafe { GetPropW(hwnd, PROP_NAME) };
     let adapter = unsafe { Box::from_raw(handle.0 as *mut Adapter) };
-    if force {
+    if force_push {
         adapter.update(tree_update);
     } else {
         adapter.update_if_active(|| tree_update);
     }
     Box::into_raw(adapter);
+    true
 }
 
 #[no_mangle]

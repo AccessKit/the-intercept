@@ -6,40 +6,50 @@ using System.Runtime.InteropServices;
 using System.Text;
 using UnityEngine.UI;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 
 namespace AccessKit
 {
     public class AccessibleScene : MonoBehaviour
     {
         static IntPtr windowHandle;
-        static bool initialized;
-        static bool destroyed;
         static bool windowHasFocus = true;
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate void ActionHandler(IntPtr action);
-        static ActionHandler performAction = null;
-        AccessibleNodeData rootNode;
+        static AccessKit.ActionHandler actionHandler = null;
+        static AccessibleNodeData rootNode;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void OnRuntimeMethodLoad()
         {
-            if (!initialized)
+            try
             {
-                try
-                {
-                    windowHandle = GetActiveWindow();
-                    performAction += new ActionHandler(performActionCallback);
-                    initialized = init(windowHandle, performAction);
-                }
-                catch (Exception e)
-                {
-                    Debug.Log(e.ToString());
-                }
+                windowHandle = GetActiveWindow();
+                rootNode = getRootNode(windowHandle);
+                var initialTreeUpdate = new TreeUpdate();
+                initialTreeUpdate.nodes.Add(rootNode);
+                initialTreeUpdate.focus = rootNode.id;
+                initialTreeUpdate.tree = new AccessibleTree(rootNode.id);
+                actionHandler += new AccessKit.ActionHandler(handleAction);
+                AccessKit.init(windowHandle, actionHandler, initialTreeUpdate);
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e.ToString());
             }
         }
 
-        static void performActionCallback(IntPtr buffer)
+        static AccessibleNodeData getRootNode(IntPtr windowHandle)
+        {
+            var root = new AccessibleNodeData(1, AccessibleRole.window);
+            int length = GetWindowTextLength(windowHandle);
+            if (length > 0)
+            {
+                var builder = new StringBuilder(length);
+                GetWindowText(windowHandle, builder, length + 1);
+                root.name = builder.ToString();
+            }
+            return root;
+        }
+        
+        static void handleAction(IntPtr buffer)
         {
             try
             {
@@ -53,39 +63,39 @@ namespace AccessKit
             }
         }
 
-        void Start()
+        static string fromUTF8(IntPtr nativeUtf8)
         {
-            rootNode = new AccessibleNodeData(1, AccessibleRole.window);
-            rootNode.name = "Window";
+            int len = 0;
+            while (Marshal.ReadByte(nativeUtf8, len) != 0)
+                ++len;
+            byte[] buffer = new byte[len];
+            Marshal.Copy(nativeUtf8, buffer, 0, buffer.Length);
+            return Encoding.UTF8.GetString(buffer);
         }
-        
+
         void OnApplicationFocus(bool hasFocus)
         {
-            if (initialized && !destroyed && hasFocus != windowHasFocus)
+            if (hasFocus != windowHasFocus)
             {
                 windowHasFocus = hasFocus;
-                buildTreeUpdate(false);
+                pushTreeUpdate(false);
             }
         }
 
         void LateUpdate()
         {
-            buildTreeUpdate(false);
+            pushTreeUpdate(false);
         }
 
         void OnApplicationQuit()
         {
-            if (!destroyed)
+            try
             {
-                try
-                {
-                    destroy(windowHandle);
-                    destroyed = true;
-                }
-                catch (Exception e)
-                {
-                    Debug.Log(e.ToString());
-                }
+                AccessKit.destroy(windowHandle);
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e.ToString());
             }
         }
 
@@ -106,8 +116,10 @@ namespace AccessKit
             }
         }
 
-        void buildTreeUpdate(bool forcePush)
+        void pushTreeUpdate(bool forcePush)
         {
+            if (!AccessKit.IsInitialized)
+                return;
             var treeUpdate = new TreeUpdate();
             AccessibleNode[] nodes = GameObject.FindObjectsOfType<AccessibleNode>();
             rootNode.children = findChildren(rootNode.id, nodes);
@@ -124,14 +136,7 @@ namespace AccessKit
                 treeUpdate.focus = rootNode.id;
             try
             {
-                var settings = new JsonSerializerSettings()
-                {
-                    DefaultValueHandling = DefaultValueHandling.Ignore,
-                    NullValueHandling = NullValueHandling.Ignore
-                };
-                settings.Converters.Add(new StringEnumConverter());
-                var json = JsonConvert.SerializeObject(treeUpdate, settings);
-                push_update(windowHandle, toUTF8(json), false);
+                AccessKit.pushUpdate(windowHandle, treeUpdate, false);
             }
             catch (Exception e)
             {
@@ -151,43 +156,13 @@ namespace AccessKit
             return children.ConvertAll(new Converter<AccessibleNode, ulong>(node => node.id));
         }
 
-        static byte[] toUTF8(string s)
-        {
-            return Encoding.UTF8.GetBytes(s + char.MinValue);
-        }
-
-        public static string fromUTF8(IntPtr nativeUtf8)
-        {
-            int len = 0;
-            while (Marshal.ReadByte(nativeUtf8, len) != 0)
-                ++len;
-            byte[] buffer = new byte[len];
-            Marshal.Copy(nativeUtf8, buffer, 0, buffer.Length);
-            return Encoding.UTF8.GetString(buffer);
-        }
-
-        [DllImport("accesskit_unity_plugin")]
-        static extern bool init(IntPtr hWnd, ActionHandler actionHandler);
-
-        [DllImport("accesskit_unity_plugin")]
-        static extern void destroy(IntPtr hwnd);
-
-        [DllImport("accesskit_unity_plugin")]
-        static extern void push_update(IntPtr hwnd, byte[] tree_update, bool force);
-
         [DllImport("user32")]
         static extern IntPtr GetActiveWindow();
-    }
-    
-    public class TreeUpdate
-    {
-        public List<AccessibleNodeData> nodes;
-        [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
-        public ulong? focus;
-        
-        public TreeUpdate()
-        {
-            nodes = new List<AccessibleNodeData>();
-        }
+
+        [DllImport("USER32.DLL")]
+        private static extern int GetWindowTextLength(IntPtr hwnd);
+
+        [DllImport("USER32.DLL")]
+        private static extern int GetWindowText(IntPtr hwnd, StringBuilder lpString, int nMaxCount);
     }
 }
