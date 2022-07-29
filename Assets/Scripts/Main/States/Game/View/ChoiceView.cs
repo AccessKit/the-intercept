@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine.UI;
 using Ink.Runtime;
+using AccessKit;
 
 [RequireComponent(typeof(Button))]
 [RequireComponent(typeof(GraphicPulser))]
@@ -9,6 +10,10 @@ public class ChoiceView : StoryElementView {
 	public ChoiceGroupView choiceGroupView;
 	public Choice choice;
 
+    public AccessibleNode accessibleNode
+    {
+        get { return GetComponent<AccessibleNode>(); }
+    }
 	public Button button {
 		get {
 			return GetComponent<Button>();
@@ -29,6 +34,7 @@ public class ChoiceView : StoryElementView {
 		positionTween.OnChange += ChangePositionTween;
 		text.color = new Color(1,1,1,0);
 		button.interactable = false;
+        accessibleNode.focusable = false;
 		pulser.enabled = false;
 	}
 
@@ -54,6 +60,7 @@ public class ChoiceView : StoryElementView {
 	public IEnumerator FadeIn (float fadeTime) {
 		pulser.enabled = false;
 		button.interactable = true;
+        accessibleNode.focusable = true;
 		alphaTween.Tween(0, 1, fadeTime);
 		positionTween.Tween(rectTransform.anchoredPosition + new Vector2(0,-20), rectTransform.anchoredPosition, fadeTime, new AnimationCurve(new Keyframe[] {new Keyframe(0,0,3.14f,3.14f), new Keyframe(1,1,0,0)}));
 		while(alphaTween.tweening || positionTween.tweening) {

@@ -127,6 +127,7 @@ public class GameState : MainState {
 	ChoiceGroupView CreateChoiceGroupView (IList<Choice> choices) {
 		ChoiceGroupView choiceGroupView = Instantiate(choiceGroupViewPrefab);
 		choiceGroupView.transform.SetParent(choiceContainerView.transform, false);
+        choiceGroupView.accessibleNode.parent = choiceContainerView.accessibleNode;
 		choiceGroupView.LayoutChoices(choices);
 		CreateEmptyView(choiceGroupView.rectTransform.sizeDelta.y);
 		return choiceGroupView;

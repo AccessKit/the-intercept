@@ -1,3 +1,4 @@
+using AccessKit;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,41 +10,54 @@ public class KeyboardFocusTracker : MonoBehaviour
     
     void Update()
     {
-        if (currentlyFocused == null && Selectable.allSelectables.Count > 0)
-            currentlyFocused = Selectable.allSelectables[0].gameObject.AddComponent<HasKeyboardFocus>();
+        if (currentlyFocused == null)
+        {
+            var i = nextFocusableIndex(0);
+            if (i >= 0)
+                currentlyFocused = AccessibleNode.allAccessibles.Values[i].gameObject.AddComponent<HasKeyboardFocus>();
+        }
         if (Input.GetKeyDown(KeyCode.Tab))
         {
             if (currentlyFocused == null)
                 return;
-            var previouslyFocused = currentlyFocused;
-            for (var i = 0; i < Selectable.allSelectables.Count; i++)
+            var node = currentlyFocused.GetComponent<AccessibleNode>();
+            if (node == null)
             {
-                if (Selectable.allSelectables[i].gameObject == currentlyFocused.gameObject)
-                {
-                    Selectable nextSelectable = null;
-                    if (Selectable.allSelectables.Count > i + 1)
-                        nextSelectable = Selectable.allSelectables[i + 1];
-                    else
-                        nextSelectable = Selectable.allSelectables[0];
-                    currentlyFocused = nextSelectable.gameObject.AddComponent<HasKeyboardFocus>();
-                    break;
-                }
+                UnityEngine.Object.Destroy(currentlyFocused);
+                return;
             }
-            UnityEngine.Object.Destroy(previouslyFocused);
+            var previouslyFocused = currentlyFocused;
+            var index = AccessibleNode.allAccessibles.IndexOfValue(node);
+            var nextIndex = nextFocusableIndex(index);
+            if (nextIndex >= 0)
+            {
+                var nextAccessible = AccessibleNode.allAccessibles.Values[nextIndex];
+                currentlyFocused = nextAccessible.gameObject.AddComponent<HasKeyboardFocus>();
+                UnityEngine.Object.Destroy(previouslyFocused);
+            }
         }
         else if (Input.GetKeyDown(KeyCode.Return))
         {
             if (currentlyFocused == null)
                 return;
-            foreach (var selectable in Selectable.allSelectables)
-            {
-                if (selectable.gameObject == currentlyFocused.gameObject && selectable.IsInteractable())
-                {
-                    if (selectable is Button)
-                        ((Button)selectable).onClick.Invoke();
-                    break;
-                }
-            }
+            var button = currentlyFocused.GetComponent<Button>();
+            if (button != null && button.IsInteractable())
+                button.onClick.Invoke();
         }
+    }
+        
+    int nextFocusableIndex(int startIndex)
+    {
+        for (var i = startIndex + 1; i < AccessibleNode.allAccessibles.Count; i++)
+        {
+            if (AccessibleNode.allAccessibles.Values[i].focusable)
+                return i;
+        }
+        for (var i = 0; i <= startIndex; i++)
+        {
+            if (AccessibleNode.allAccessibles.Values[i].focusable)
+                return i;
+        }
+        return -1;
     }
 }

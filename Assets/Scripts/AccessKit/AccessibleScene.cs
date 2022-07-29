@@ -121,17 +121,17 @@ namespace AccessKit
             if (!AccessKit.IsInitialized)
                 return;
             var treeUpdate = new TreeUpdate();
-            AccessibleNode[] nodes = GameObject.FindObjectsOfType<AccessibleNode>();
+            var nodes = AccessibleNode.allAccessibles.Values;
             rootNode.children = findChildren(rootNode.id, nodes);
-            treeUpdate.nodes.Add(rootNode);
             foreach (var node in nodes)
             {
-                if (node.id == 0 || node.parent == 0)
-                    continue;
+                if (node.parent == null)
+                    rootNode.children.Add(node.id);
                 if (windowHasFocus && node.GetComponent<HasKeyboardFocus>() != null)
                     treeUpdate.focus = node.id;
                 treeUpdate.nodes.Add(new AccessibleNodeData(node, findChildren(node.id, nodes)));
             }
+            treeUpdate.nodes.Add(rootNode);
             if (treeUpdate.focus == null && windowHasFocus)
                 treeUpdate.focus = rootNode.id;
             try
@@ -144,15 +144,14 @@ namespace AccessKit
             }
         }
         
-        List<ulong> findChildren(ulong id, AccessibleNode[] nodes)
+        List<ulong> findChildren(ulong id, IList<AccessibleNode> nodes)
         {
             var children = new List<AccessibleNode>();
             foreach (var node in nodes)
             {
-                if (node.parent == id && node.id != 0 && node.id != id)
+                if (node.parent != null && node.parent.id == id && node.id != 0 && node.id != id)
                     children.Add(node);
             }
-            children.Sort((x, y) => x.indexInParent.CompareTo(y.indexInParent));
             return children.ConvertAll(new Converter<AccessibleNode, ulong>(node => node.id));
         }
 

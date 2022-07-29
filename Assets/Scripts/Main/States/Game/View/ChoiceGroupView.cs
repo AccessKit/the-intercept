@@ -3,11 +3,16 @@ using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using Ink.Runtime;
+using AccessKit;
 
 public class ChoiceGroupView : UIMonoBehaviour {
 	public List<ChoiceView> choiceViews;
 	public ChoiceView choiceViewPrefab;
 
+    public AccessibleNode accessibleNode
+    {
+        get { return GetComponent<AccessibleNode>(); }
+    }
 	public VerticalLayoutGroup verticalLayoutGroup {
 		get {
 			return GetComponent<VerticalLayoutGroup>();
@@ -18,7 +23,7 @@ public class ChoiceGroupView : UIMonoBehaviour {
 			return GetComponent<ContentSizeFitter>();
 		}
 	}
-
+    
 	public virtual void LayoutChoices (IList<Choice> choices) {
 		foreach(Choice choice in choices) {
 			LayoutChoice (choice);
@@ -45,6 +50,7 @@ public class ChoiceGroupView : UIMonoBehaviour {
 		ChoiceView choiceView = Instantiate (choiceViewPrefab);
 		choiceView.transform.SetParent (transform, false);
 		choiceView.choiceGroupView = this;
+        choiceView.accessibleNode.parent = this.accessibleNode;
 		choiceView.LayoutText(choice);
 		choiceViews.Add(choiceView);
 		return choiceView;

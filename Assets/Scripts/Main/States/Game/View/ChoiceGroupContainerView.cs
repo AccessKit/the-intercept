@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using AccessKit;
 
 public class ChoiceGroupContainerView : MonoBehaviour {
 
@@ -10,7 +11,11 @@ public class ChoiceGroupContainerView : MonoBehaviour {
 			return GetComponent<CanvasGroup>();
 		}
 	}
-
+    public AccessibleNode accessibleNode
+    {
+        get { return GetComponent<AccessibleNode>(); }
+    }
+    
 	public void Clear () {
 		for (int i = transform.childCount-1; i >= 0; i--) {
 			Destroy(transform.GetChild(i).gameObject);
