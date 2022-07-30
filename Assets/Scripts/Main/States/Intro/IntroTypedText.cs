@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using AccessKit;
 
 [RequireComponent(typeof(Text))]
 public class IntroTypedText : UIMonoBehaviour {
@@ -12,6 +13,10 @@ public class IntroTypedText : UIMonoBehaviour {
 			return GetComponent<Text>();
 		}
 	}
+    AccessibleNode accessibleNode
+    {
+        get { return GetComponent<AccessibleNode>(); }
+    }
 
 	private void OnEnable () {
 		TypedText.TypedTextSettings typedTextSettings = new TypedText.TypedTextSettings();
@@ -20,6 +25,7 @@ public class IntroTypedText : UIMonoBehaviour {
 
 		typedText = new TypedText();
 		typedText.TypeText(content, typedTextSettings);
+        typedText.OnCompleteTyping += CompleteTyping;
 		typedText.OnTypeText += OnTypeText;
 		text.text = "";
 
@@ -42,6 +48,11 @@ public class IntroTypedText : UIMonoBehaviour {
 		if(newText != " ")
 			AudioClipDatabase.Instance.PlayKeySound();
 	}
+    void CompleteTyping()
+    {
+        accessibleNode.live = AriaLive.polite;
+    }
+    
 
 	private void Update () {
 		typedText.Loop();
