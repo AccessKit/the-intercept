@@ -1,3 +1,7 @@
+# Notes on the AccessKit fork
+
+This fork of The Intercept is a proof of concept for integrating screen reader accessibility into Unity. It currently runs only on WIndows. Like the original version of The Intercept, this fork uses Unity 5.3.4f1. A prebuilt version of the Rust-based native plugin is included, so you should be able to just open the project in Unity, build, and run.
+
 # The Intercept
 
 
