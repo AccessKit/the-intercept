@@ -12,7 +12,7 @@ namespace AccessKit
     public class AccessibleScene : MonoBehaviour
     {
         static IntPtr windowHandle;
-        static bool windowHasFocus = true;
+        static bool windowHasFocus = false;
         static AccessKit.ActionHandler actionHandler = null;
         static AccessibleNodeData rootNode;
 
@@ -25,7 +25,6 @@ namespace AccessKit
                 rootNode = getRootNode(windowHandle);
                 var initialTreeUpdate = new TreeUpdate();
                 initialTreeUpdate.nodes.Add(rootNode);
-                initialTreeUpdate.focus = rootNode.id;
                 initialTreeUpdate.tree = new AccessibleTree(rootNode.id);
                 actionHandler += new AccessKit.ActionHandler(handleAction);
                 AccessKit.init(windowHandle, actionHandler, initialTreeUpdate);
