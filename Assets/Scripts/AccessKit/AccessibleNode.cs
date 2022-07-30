@@ -32,7 +32,7 @@ namespace AccessKit
             id = nextId++;
         }
         
-        void Start()
+        void OnEnable()
         {
             currentHierarchyPosition = computePosition();
             allAccessibles.Add(currentHierarchyPosition, this);
@@ -69,7 +69,7 @@ namespace AccessKit
             }
         }
         
-        void OnDestroy()
+        void OnDisable()
         {
             int index = allAccessibles.IndexOfValue(this);
             allAccessibles.RemoveAt(index);
