@@ -57,7 +57,7 @@ public class KeyboardFocusTracker : MonoBehaviour
     {
         for (var i = 0; i < AccessibleNode.allAccessibles.Count; i++)
         {
-            if (AccessibleNode.allAccessibles.Values[i].focusable)
+            if (AccessibleNode.allAccessibles.Values[i].canBeFocused)
                 return i;
         }
         return -1;
@@ -67,12 +67,12 @@ public class KeyboardFocusTracker : MonoBehaviour
     {
         for (var i = startIndex + 1; i < AccessibleNode.allAccessibles.Count; i++)
         {
-            if (AccessibleNode.allAccessibles.Values[i].focusable)
+            if (AccessibleNode.allAccessibles.Values[i].canBeFocused)
                 return i;
         }
         for (var i = 0; i < startIndex; i++)
         {
-            if (AccessibleNode.allAccessibles.Values[i].focusable)
+            if (AccessibleNode.allAccessibles.Values[i].canBeFocused)
                 return i;
         }
         return -1;
@@ -82,7 +82,7 @@ public class KeyboardFocusTracker : MonoBehaviour
     {
         for (var i = AccessibleNode.allAccessibles.Count - 1; i >= 0; i--)
         {
-            if (AccessibleNode.allAccessibles.Values[i].focusable)
+            if (AccessibleNode.allAccessibles.Values[i].canBeFocused)
                 return i;
         }
         return -1;
@@ -92,12 +92,12 @@ public class KeyboardFocusTracker : MonoBehaviour
     {
         for (var i = startIndex - 1; i >= 0; i--)
         {
-            if (AccessibleNode.allAccessibles.Values[i].focusable)
+            if (AccessibleNode.allAccessibles.Values[i].canBeFocused)
                 return i;
         }
         for (var i = AccessibleNode.allAccessibles.Count - 1; i > startIndex; i--)
         {
-            if (AccessibleNode.allAccessibles.Values[i].focusable)
+            if (AccessibleNode.allAccessibles.Values[i].canBeFocused)
                 return i;
         }
         return -1;

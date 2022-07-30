@@ -14,8 +14,7 @@ namespace AccessKit
         public string name;
         public List<ulong> children;
         public bool focusable;
-        [DefaultValue(true)]
-        public bool visible = true;
+        public bool invisible;
         [DefaultValue(DefaultActionVerb.none)]
         public DefaultActionVerb defaultActionVerb;
 
@@ -32,7 +31,7 @@ namespace AccessKit
             this.children = children;
             focusable = node.focusable;
             name = getName(node);
-            visible = node.visible;
+            invisible = node.invisible;
             defaultActionVerb = node.defaultActionVerb;
         }
         

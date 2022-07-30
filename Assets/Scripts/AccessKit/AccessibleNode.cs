@@ -19,8 +19,12 @@ namespace AccessKit
         public AccessibleRole role;
         public AccessibleNode parent;
         public bool focusable;
-        public bool visible;
+        public bool invisible;
         public DefaultActionVerb defaultActionVerb;
+        public bool canBeFocused
+        {
+            get { return focusable && !invisible; }
+        }
         
         void Awake()
         {
