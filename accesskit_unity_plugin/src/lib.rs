@@ -98,22 +98,14 @@ extern fn init(
 }
 
 #[no_mangle]
-extern fn push_update(
-    hwnd: HWND,
-    tree_update: *const c_char,
-    force_push: bool
-) -> bool {
+extern fn push_update(hwnd: HWND, tree_update: *const c_char) -> bool {
     let tree_update = match tree_update_from_json(tree_update) {
         Some(tree_update) => tree_update,
         _ => return false
     };
     let handle = unsafe { GetPropW(hwnd, PROP_NAME) };
     let adapter = unsafe { Box::from_raw(handle.0 as *mut Adapter) };
-    if force_push {
-        adapter.update(tree_update);
-    } else {
-        adapter.update_if_active(|| tree_update);
-    }
+    adapter.update(tree_update);
     Box::into_raw(adapter);
     true
 }

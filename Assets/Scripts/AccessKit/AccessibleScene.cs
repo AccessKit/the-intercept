@@ -78,13 +78,13 @@ namespace AccessKit
             if (hasFocus != windowHasFocus)
             {
                 windowHasFocus = hasFocus;
-                pushTreeUpdate(false);
+                pushTreeUpdate();
             }
         }
 
         void LateUpdate()
         {
-            pushTreeUpdate(false);
+            pushTreeUpdate();
         }
 
         void OnApplicationQuit()
@@ -116,7 +116,7 @@ namespace AccessKit
             }
         }
 
-        void pushTreeUpdate(bool forcePush)
+        void pushTreeUpdate()
         {
             if (!AccessKit.IsInitialized)
                 return;
@@ -136,7 +136,7 @@ namespace AccessKit
                 treeUpdate.focus = rootNode.id;
             try
             {
-                AccessKit.pushUpdate(windowHandle, treeUpdate, false);
+                AccessKit.pushUpdate(windowHandle, treeUpdate);
             }
             catch (Exception e)
             {

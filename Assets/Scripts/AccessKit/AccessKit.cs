@@ -52,14 +52,14 @@ namespace AccessKit
         [DllImport("accesskit_unity_plugin", EntryPoint = "destroy")]
         static extern void rawDestroy(IntPtr hwnd);
 
-        public static bool pushUpdate(IntPtr windowHandle, TreeUpdate treeUpdate, bool forcePush)
+        public static bool pushUpdate(IntPtr windowHandle, TreeUpdate treeUpdate)
         {
             if (!IsInitialized)
                 return false;
-            return push_update(windowHandle, toUTF8(toJSON(treeUpdate)), forcePush);
+            return push_update(windowHandle, toUTF8(toJSON(treeUpdate)));
         }
 
         [DllImport("accesskit_unity_plugin")]
-        static extern bool push_update(IntPtr hwnd, byte[] tree_update, bool force_push);
+        static extern bool push_update(IntPtr hwnd, byte[] tree_update);
     }
 }
