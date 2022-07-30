@@ -39,6 +39,8 @@ namespace AccessKit
         {
             if (node.role == AccessibleRole.presentation || node.role == AccessibleRole.pane)
                 return null;
+            if (!string.IsNullOrEmpty(node.accessibleName))
+                return node.accessibleName;
             var text = node.gameObject.GetComponentInChildren(typeof(Text)) as Text;
             return text != null ? text.text : node.name;
         }

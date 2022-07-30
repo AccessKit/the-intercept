@@ -17,6 +17,7 @@ namespace AccessKit
         static ulong nextId = 2;
         public ulong id;
         public AccessibleRole role;
+        public string accessibleName;
         public AccessibleNode parent;
         public bool focusable;
         public bool invisible;
