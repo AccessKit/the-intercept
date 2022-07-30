@@ -17,6 +17,8 @@ namespace AccessKit
         public bool invisible;
         [DefaultValue(DefaultActionVerb.none)]
         public DefaultActionVerb defaultActionVerb;
+        [DefaultValue(AriaLive.off)]
+        public AriaLive live;
 
         public AccessibleNodeData(ulong id, AccessibleRole role)
         {
@@ -29,10 +31,12 @@ namespace AccessKit
             id = node.id;
             role = node.role;
             this.children = children;
-            focusable = node.focusable;
+            focusable = node.canBeFocused;
             name = getName(node);
             invisible = node.invisible;
             defaultActionVerb = node.defaultActionVerb;
+            if (role == AccessibleRole.staticText)
+                live = AriaLive.polite;
         }
         
         string getName(AccessibleNode node)

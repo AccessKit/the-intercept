@@ -24,8 +24,9 @@ namespace AccessKit
         public DefaultActionVerb defaultActionVerb;
         public bool canBeFocused
         {
-            get { return focusable && !invisible; }
+            get { return focusable && !invisible && (role != AccessibleRole.staticText); }
         }
+        public AriaLive live;
         
         void Awake()
         {
