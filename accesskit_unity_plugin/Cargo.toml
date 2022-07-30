@@ -8,8 +8,8 @@ name = "accesskit_unity_plugin"
 crate-type = ["dylib"]
 
 [dependencies]
-accesskit = { version = "0.4", features = ["serde"] }
-accesskit_windows = "0.4"
+accesskit = { path = "../../accesskit/common", features = ["serde"] }
+accesskit_windows = { path = "../../accesskit/platforms/windows" }
 lazy_static = "1.4.0"
 serde_json = "1.0"
 
