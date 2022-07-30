@@ -10,30 +10,37 @@ public class KeyboardFocusTracker : MonoBehaviour
     
     void Update()
     {
-        if (currentlyFocused == null)
-        {
-            var i = nextFocusableIndex(0);
-            if (i >= 0)
-                currentlyFocused = AccessibleNode.allAccessibles.Values[i].gameObject.AddComponent<HasKeyboardFocus>();
-        }
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            if (currentlyFocused == null)
-                return;
-            var node = currentlyFocused.GetComponent<AccessibleNode>();
-            if (node == null)
+            AccessibleNode node = null;
+            if (currentlyFocused != null)
             {
-                UnityEngine.Object.Destroy(currentlyFocused);
-                return;
+                node = currentlyFocused.GetComponent<AccessibleNode>();
+                if (node == null)
+                {
+                    UnityEngine.Object.Destroy(currentlyFocused);
+                    currentlyFocused = null;
+                    node = null;
+                }
             }
+            var backward = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
             var previouslyFocused = currentlyFocused;
-            var index = AccessibleNode.allAccessibles.IndexOfValue(node);
-            var nextIndex = nextFocusableIndex(index);
+            int nextIndex = -1;
+            if (previouslyFocused != null)
+            {
+                var index = AccessibleNode.allAccessibles.IndexOfValue(node);
+                nextIndex = backward ? previousFocusableIndex(index) : nextFocusableIndex(index);
+            }
+            else
+            {
+                nextIndex = backward ? lastFocusableIndex() : firstFocusableIndex();
+            }
             if (nextIndex >= 0)
             {
                 var nextAccessible = AccessibleNode.allAccessibles.Values[nextIndex];
                 currentlyFocused = nextAccessible.gameObject.AddComponent<HasKeyboardFocus>();
-                UnityEngine.Object.Destroy(previouslyFocused);
+                if (previouslyFocused != null)
+                    UnityEngine.Object.Destroy(previouslyFocused);
             }
         }
         else if (Input.GetKeyDown(KeyCode.Return))
@@ -45,6 +52,16 @@ public class KeyboardFocusTracker : MonoBehaviour
                 button.onClick.Invoke();
         }
     }
+
+    int firstFocusableIndex()
+    {
+        for (var i = 0; i < AccessibleNode.allAccessibles.Count; i++)
+        {
+            if (AccessibleNode.allAccessibles.Values[i].focusable)
+                return i;
+        }
+        return -1;
+    }
         
     int nextFocusableIndex(int startIndex)
     {
@@ -53,7 +70,32 @@ public class KeyboardFocusTracker : MonoBehaviour
             if (AccessibleNode.allAccessibles.Values[i].focusable)
                 return i;
         }
-        for (var i = 0; i <= startIndex; i++)
+        for (var i = 0; i < startIndex; i++)
+        {
+            if (AccessibleNode.allAccessibles.Values[i].focusable)
+                return i;
+        }
+        return -1;
+    }
+
+    int lastFocusableIndex()
+    {
+        for (var i = AccessibleNode.allAccessibles.Count - 1; i >= 0; i--)
+        {
+            if (AccessibleNode.allAccessibles.Values[i].focusable)
+                return i;
+        }
+        return -1;
+    }
+
+    int previousFocusableIndex(int startIndex)
+    {
+        for (var i = startIndex - 1; i >= 0; i--)
+        {
+            if (AccessibleNode.allAccessibles.Values[i].focusable)
+                return i;
+        }
+        for (var i = AccessibleNode.allAccessibles.Count - 1; i > startIndex; i--)
         {
             if (AccessibleNode.allAccessibles.Values[i].focusable)
                 return i;
