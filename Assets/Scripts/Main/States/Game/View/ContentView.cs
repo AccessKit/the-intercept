@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using AccessKit;
 
 public class ContentView : StoryElementView {
 
@@ -8,6 +9,11 @@ public class ContentView : StoryElementView {
 
 	public Color driedColor;
 	public Color wetColor;
+
+    public AccessibleNode accessibleNode
+    {
+        get { return GetComponent<AccessibleNode>(); }
+    }
 
 	protected override void Awake () {
 		textTyper = new TypedText();
@@ -57,6 +63,7 @@ public class ContentView : StoryElementView {
 
 	protected override void CompleteTyping () {
 		colorTween.Tween(text.color, driedColor, 8);
+        accessibleNode.live = AriaLive.polite;
 		base.CompleteTyping();
 	}
 }

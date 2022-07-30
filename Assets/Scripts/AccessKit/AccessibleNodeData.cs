@@ -35,8 +35,7 @@ namespace AccessKit
             name = getName(node);
             invisible = node.invisible;
             defaultActionVerb = node.defaultActionVerb;
-            if (role == AccessibleRole.staticText)
-                live = AriaLive.polite;
+            live = node.live;
         }
         
         string getName(AccessibleNode node)
