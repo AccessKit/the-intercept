@@ -38,6 +38,8 @@ namespace AccessKit
         
         string getName(AccessibleNode node)
         {
+            if (node.role == AccessibleRole.presentation || node.role == AccessibleRole.pane)
+                return null;
             var text = node.gameObject.GetComponentInChildren(typeof(Text)) as Text;
             return text != null ? text.text : node.name;
         }
